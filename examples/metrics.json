@@ -1,0 +1,59 @@
+{
+  "_comment": "Shape returned by `costwatchdog audit --live` (azure-monitor source) and expected by `--metrics`. Keys are resource ids; `last_activity_utc` sets how long the resource has been quiet. cpu_peak_percent is the busiest hourly average in the window.",
+  "window_days": 30,
+  "metrics": {
+    "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-dev/providers/microsoft.compute/virtualmachines/vm-dev-01": {
+      "cpu_peak_percent": 1.8,
+      "cpu_avg_percent": 0.4,
+      "network_in_bytes_per_day": 218304,
+      "network_out_bytes_per_day": 91648,
+      "last_activity_utc": "2026-09-23T11:04:00Z",
+      "source": "azure-monitor"
+    },
+    "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.compute/virtualmachines/vm-prod-01": {
+      "cpu_peak_percent": 62.4,
+      "cpu_avg_percent": 38.1,
+      "network_in_bytes_per_day": 4512800000,
+      "network_out_bytes_per_day": 1206430000,
+      "last_activity_utc": "2026-10-27T04:10:00Z",
+      "source": "azure-monitor"
+    },
+    "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-dev/providers/microsoft.compute/virtualmachines/vm-dev-02": {
+      "cpu_peak_percent": 0.9,
+      "cpu_avg_percent": 0.2,
+      "network_in_bytes_per_day": 74432,
+      "network_out_bytes_per_day": 20480,
+      "last_activity_utc": "2026-09-28T16:22:00Z",
+      "source": "azure-monitor"
+    },
+    "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-dev/providers/microsoft.compute/virtualmachines/vm-dev-stopped-01": {
+      "cpu_peak_percent": 0.0,
+      "cpu_avg_percent": 0.0,
+      "network_in_bytes_per_day": 0,
+      "network_out_bytes_per_day": 0,
+      "last_activity_utc": "2026-09-01T08:00:00Z",
+      "source": "azure-monitor"
+    },
+    "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-legacy/providers/microsoft.compute/virtualmachines/vm-legacy-01": {
+      "cpu_peak_percent": 0.3,
+      "cpu_avg_percent": 0.1,
+      "network_in_bytes_per_day": 40960,
+      "network_out_bytes_per_day": 12288,
+      "last_activity_utc": "2026-09-10T07:30:00Z",
+      "source": "azure-monitor"
+    },
+    "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.containerservice/managedclusters/aks-prod-01": {
+      "cpu_peak_percent": 3.2,
+      "cpu_avg_percent": 1.9,
+      "network_in_bytes_per_day": 4800000,
+      "network_out_bytes_per_day": 1150000,
+      "last_activity_utc": "2026-10-05T09:45:00Z",
+      "source": "azure-monitor"
+    },
+    "/subscriptions/00000000-0000-0000-0000-000000000001/resourcegroups/rg-prod/providers/microsoft.web/serverfarms/plan-prod-01": {
+      "request_count_30d": 2450122,
+      "last_activity_utc": "2026-10-27T05:58:00Z",
+      "source": "azure-monitor"
+    }
+  }
+}

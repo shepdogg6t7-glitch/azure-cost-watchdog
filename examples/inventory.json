@@ -1,0 +1,215 @@
+{
+  "count": 14,
+  "totalRecords": 14,
+  "resultTruncated": "false",
+  "subscription": "00000000-0000-0000-0000-000000000001",
+  "data": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Compute/virtualMachines/vm-dev-01",
+      "name": "vm-dev-01",
+      "type": "microsoft.compute/virtualmachines",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard_D4s_v5", "tier": "Standard" },
+      "powerState": "VM running",
+      "tags": { "env": "dev", "owner": "team-platform", "workload": "batch" },
+      "properties": {
+        "hardwareProfile": { "vmSize": "Standard_D4s_v5" },
+        "osProfile": { "computerName": "vm-dev-01" },
+        "storageProfile": { "osDisk": { "managedDisk": { "storageAccountType": "Premium_LRS" } } }
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-prod-01",
+      "name": "vm-prod-01",
+      "type": "microsoft.compute/virtualmachines",
+      "resourceGroup": "rg-prod",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard_D4s_v5", "tier": "Standard" },
+      "powerState": "VM running",
+      "tags": { "env": "prod", "owner": "team-core" },
+      "properties": {
+        "hardwareProfile": { "vmSize": "Standard_D4s_v5" },
+        "storageProfile": { "osDisk": { "managedDisk": { "storageAccountType": "Premium_LRS" } } }
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Compute/virtualMachines/vm-dev-02",
+      "name": "vm-dev-02",
+      "type": "microsoft.compute/virtualmachines",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard_D2s_v5", "tier": "Standard" },
+      "powerState": "VM running",
+      "tags": {
+        "env": "dev",
+        "owner": "team-platform",
+        "costwatchdog:protected": "true",
+        "purpose": "incident reproduction sandbox"
+      },
+      "properties": { "hardwareProfile": { "vmSize": "Standard_D2s_v5" } }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Compute/virtualMachines/vm-dev-stopped-01",
+      "name": "vm-dev-stopped-01",
+      "type": "microsoft.compute/virtualmachines",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard_D2s_v5", "tier": "Standard" },
+      "powerState": "VM deallocated",
+      "tags": { "env": "dev", "owner": "team-platform", "state": "parked for Q4" },
+      "properties": { "hardwareProfile": { "vmSize": "Standard_D2s_v5" } }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Compute/virtualMachines/vm-no-metrics-01",
+      "name": "vm-no-metrics-01",
+      "type": "microsoft.compute/virtualmachines",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard_D2s_v5", "tier": "Standard" },
+      "powerState": "VM running",
+      "tags": { "env": "dev", "owner": "team-labs" },
+      "properties": { "hardwareProfile": { "vmSize": "Standard_D2s_v5" } }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-legacy/providers/Microsoft.Compute/virtualMachines/vm-legacy-01",
+      "name": "vm-legacy-01",
+      "type": "microsoft.compute/virtualmachines",
+      "resourceGroup": "rg-legacy",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard_D2s_v5", "tier": "Standard" },
+      "powerState": "VM running",
+      "tags": { "env": "dev", "owner": "team-legacy" },
+      "properties": { "hardwareProfile": { "vmSize": "Standard_D2s_v5" } }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.ContainerService/managedClusters/aks-prod-01",
+      "name": "aks-prod-01",
+      "type": "microsoft.containerservice/managedclusters",
+      "resourceGroup": "rg-prod",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Base", "tier": "Free" },
+      "powerState": "Running",
+      "tags": { "env": "prod", "owner": "team-core", "costwatchdog:review": "migration candidate" },
+      "properties": {
+        "kubernetesVersion": "1.30.4",
+        "agentPoolProfiles": [
+          { "name": "system", "count": 3, "vmSize": "Standard_D2s_v5", "mode": "System" }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Web/serverfarms/plan-empty-01",
+      "name": "plan-empty-01",
+      "type": "microsoft.web/serverfarms",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "B1", "tier": "Basic" },
+      "tags": { "env": "dev", "owner": "team-platform" },
+      "properties": { "numberOfSites": 0, "reserved": false, "maximumNumberOfWorkers": 1 }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Web/serverfarms/plan-prod-01",
+      "name": "plan-prod-01",
+      "type": "microsoft.web/serverfarms",
+      "resourceGroup": "rg-prod",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "P1v3", "tier": "PremiumV3" },
+      "tags": { "env": "prod", "owner": "team-core" },
+      "properties": { "numberOfSites": 4, "reserved": true, "maximumNumberOfWorkers": 3 }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Compute/disks/disk-orphan-01",
+      "name": "disk-orphan-01",
+      "type": "microsoft.compute/disks",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Premium_LRS", "tier": "Premium" },
+      "tags": { "env": "dev", "owner": "team-platform" },
+      "properties": {
+        "diskState": "Unattached",
+        "diskSizeGB": 128,
+        "managedBy": null,
+        "creationData": { "createOption": "Empty" }
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Network/publicIPAddresses/pip-unused-01",
+      "name": "pip-unused-01",
+      "type": "microsoft.network/publicipaddresses",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard", "tier": "Regional" },
+      "tags": { "env": "dev", "owner": "team-platform" },
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "publicIPAddressVersion": "IPv4",
+        "ipConfiguration": null,
+        "ipAddress": "20.62.148.7"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Network/publicIPAddresses/pip-prod-01",
+      "name": "pip-prod-01",
+      "type": "microsoft.network/publicipaddresses",
+      "resourceGroup": "rg-prod",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard", "tier": "Regional" },
+      "tags": { "env": "prod", "owner": "team-core" },
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "publicIPAddressVersion": "IPv4",
+        "ipConfiguration": {
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-prod/providers/Microsoft.Network/loadBalancers/lb-prod-01/frontendIPConfigurations/frontend"
+        },
+        "ipAddress": "20.62.148.19"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Compute/snapshots/snap-old-01",
+      "name": "snap-old-01",
+      "type": "microsoft.compute/snapshots",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "sku": { "name": "Standard_LRS", "tier": "Standard" },
+      "tags": { "env": "dev", "owner": "team-platform" },
+      "properties": {
+        "diskSizeGB": 128,
+        "timeCreated": "2026-01-05T09:12:00Z",
+        "creationData": {
+          "createOption": "Copy",
+          "sourceResourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Compute/disks/disk-retired-01"
+        }
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-dev/providers/Microsoft.Network/networkInterfaces/nic-free-01",
+      "name": "nic-free-01",
+      "type": "microsoft.network/networkinterfaces",
+      "resourceGroup": "rg-dev",
+      "subscriptionId": "00000000-0000-0000-0000-000000000001",
+      "location": "eastus",
+      "tags": { "env": "dev", "owner": "team-platform" },
+      "properties": {
+        "virtualMachine": null,
+        "macAddress": "60-45-BD-11-22-33",
+        "ipConfigurations": [
+          { "name": "ipconfig1", "properties": { "privateIPAllocationMethod": "Dynamic" } }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "costwatchdog"
+version = "0.1.0"
+description = "Audits Azure spend, finds idle/orphaned resources, and deallocates them behind hard guardrails."
+readme = "README.md"
+requires-python = ">=3.10"
+# No license declared yet - pick one before publishing this repository.
+dependencies = [
+    # Runtime-only: the audit engine and its tests use the standard library alone.
+    # These are imported lazily, only by the live Azure adapter (costwatchdog.azure_client).
+    "azure-identity>=1.17.0",
+    "azure-mgmt-compute>=31.0.0",
+    "azure-mgmt-containerservice>=28.0.0",
+    "azure-mgmt-costmanagement>=4.0.1",
+    "azure-mgmt-monitor>=6.0.2",
+    "azure-mgmt-resource>=23.1.1",
+]
+
+[project.optional-dependencies]
+functions = [
+    "azure-functions>=1.20.0",
+    "azure-storage-blob>=12.19.0",
+]
+
+[project.scripts]
+costwatchdog = "costwatchdog.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

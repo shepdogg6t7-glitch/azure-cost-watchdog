@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: tests (python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # The audit engine, detectors, report renderer and CLI are standard-library only,
+      # so the test suite runs with no dependencies and no Azure credentials.
+      - name: Run test suite
+        run: PYTHONPATH=src python -m unittest discover -s tests -t . -v
+
+  audit-smoke:
+    name: fixture audit + waste gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit the bundled fixtures
+        run: |
+          PYTHONPATH=src python -m costwatchdog.cli audit \
+            --cost-csv examples/cost-export.csv \
+            --inventory examples/inventory.json \
+            --metrics examples/metrics.json \
+            --policy examples/policy.json \
+            --today 2026-10-27 \
+            --format both \
+            --out reports/report.md \
+            --plan-out reports/plan.json \
+            --audit-log reports/audit.jsonl \
+            --fail-on-waste 1000
+        # The fixtures contain USD 512.78/month of identified waste, so 1000 passes.
+        # Lower this to your tolerance to turn the job into a spending guardrail.
+      - name: Dry-run the plan
+        run: PYTHONPATH=src python -m costwatchdog.cli apply --plan reports/plan.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: costwatchdog-report
+          path: reports/
+          if-no-files-found: error
+
+  bicep:
+    name: validate bicep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az bicep install
+            az bicep build --file infra/main.bicep --stdout > /dev/null
+            az bicep build --file infra/functionApp.bicep --stdout > /dev/null

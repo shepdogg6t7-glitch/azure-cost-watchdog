@@ -1,0 +1,22 @@
+{
+  "_comment": "Example policy for the fixture walkthrough. Keys omitted here fall back to the built-in defaults (see src/costwatchdog/policy.py). Start with allow_orphan_deletion=false and allow_prod_actions=false, review a few reports, then relax one gate at a time.",
+  "currency": "USD",
+  "min_monthly_savings": 1.0,
+  "min_idle_days": 14,
+  "cpu_idle_peak_percent": 5.0,
+  "idle_network_bytes_per_day": 5000000,
+  "stale_snapshot_days": 90,
+  "max_actions_per_run": 10,
+  "high_severity_savings": 100,
+  "allow_prod_actions": false,
+  "allow_orphan_deletion": true,
+  "require_owner_tag": true,
+  "notify_unclassified": true,
+  "notify_unclassified_above": 25,
+  "protected_tag_keys": ["costwatchdog:protected", "do-not-stop", "protected"],
+  "environment_tag_keys": ["env", "environment"],
+  "owner_tag_keys": ["owner", "costwatchdog:owner", "team"],
+  "protected_environments": ["prod", "production"],
+  "denied_subscriptions": [],
+  "denied_resource_groups": ["rg-legacy"]
+}
