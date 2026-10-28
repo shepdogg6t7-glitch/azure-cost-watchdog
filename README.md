@@ -1,4 +1,4 @@
-![CI](https://github.com/shepdogg6t7-glitch/costwatchdog/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/shepdogg6t7-glitch/azure-cost-watchdog/actions/workflows/ci.yml/badge.svg)
 
 # costwatchdog
 
