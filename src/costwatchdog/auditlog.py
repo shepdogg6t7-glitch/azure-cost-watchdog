@@ -32,8 +32,8 @@ class AuditLog:
             **fields,
         }
         if self.path is not None:
-            with self.path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(entry, default=str) + os.linesep)
+                with self.path.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(entry, default=str) + "\n")
         return entry
 
     def record_result(self, result: Any, *, mode: str, scope: str | None = None) -> None:
