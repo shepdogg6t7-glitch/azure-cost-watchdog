@@ -23,4 +23,39 @@ Identified waste is every decision the detectors priced. Of that, USD 183.18 is 
 flowchart LR
   subgraph AZ["Audited Azure subscription"]
     RES["Resources<br/>VMs · VMSS · AKS · App Service plans<br/>disks · snapshots · public IPs · NICs"]
+    CM["Cost Management API<br/>daily line items"]
+    MON["Azure Monitor<br/>metrics + activity log"]
+    RM["Resource Manager<br/>inventory + tags"]
+    RES -.-> RM
   end
+
+  subgraph WD["costwatchdog"]
+    direction TB
+    BILL["billing.py<br/>normalise to a monthly run rate"]
+    DET["detectors.py<br/>idle · orphan · healthy"]
+    POL["policy.json<br/>guardrails"]
+    ENG["engine.py<br/>assess → guardrail → rank → cap"]
+    REP["report.py<br/>Markdown · JSON · console"]
+    LOG[("audit trail<br/>JSONL")]
+    BILL --> ENG
+    DET --> ENG
+    POL --> ENG
+    ENG --> REP
+    ENG --> LOG
+  end
+
+  ID["user-assigned<br/>managed identity"] -.-> CM
+  ID -.-> MON
+  ID -.-> RM
+  STORE[("Blob storage<br/>reports + trail")]
+  CI["GitHub Actions<br/>audit + --fail-on-waste gate"]
+
+  CM --> BILL
+  MON --> DET
+  RM --> BILL
+  RM --> DET
+  REP --> STORE
+  LOG --> STORE
+  ENG -. "apply (opt-in, dry-run by default)" .-> RES
+  CI --> REP
+
