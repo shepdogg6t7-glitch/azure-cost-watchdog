@@ -1,3 +1,5 @@
+![CI](https://github.com/shepdogg6t7-glitch/costwatchdog/actions/workflows/ci.yml/badge.svg)
+
 # costwatchdog
 
 **Find idle and orphaned Azure resources, price the waste per resource, and stop it — behind guardrails strict enough that auto-remediation is safe to actually switch on.**
