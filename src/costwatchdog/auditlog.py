@@ -7,7 +7,6 @@ the record of *why* something was stopped, which is the question you get asked l
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,8 +31,8 @@ class AuditLog:
             **fields,
         }
         if self.path is not None:
-                with self.path.open("a", encoding="utf-8") as handle:
-                    handle.write(json.dumps(entry, default=str) + "\n")
+            with self.path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(entry, default=str) + "\n")
         return entry
 
     def record_result(self, result: Any, *, mode: str, scope: str | None = None) -> None:
