@@ -23,17 +23,21 @@ Identified waste is every decision the detectors priced. Of that, USD 183.18 is 
 flowchart LR
   subgraph AZ["Audited Azure subscription"]
     RES["Resources<br/>VMs · VMSS · AKS · App Service plans<br/>disks · snapshots · public IPs · NICs"]
-    CM["Cost Management API<br/>daily line items"]
+    CM["Cost Management API<br/>daily actual cost, grouped by resource"]
     MON["Azure Monitor<br/>metrics + activity log"]
     RM["Resource Manager<br/>inventory + tags"]
     RES -.-> RM
   end
-
+ 
+  ENTRY["entrypoint<br/>CLI · 06:00 UTC timer · CI"]
+  ID["managed identity<br/>via DefaultAzureCredential"] -.-> AC
+ 
   subgraph WD["costwatchdog"]
     direction TB
-    BILL["billing.py<br/>normalise to a monthly run rate"]
+    AC["azure_client.py<br/>the only module that calls Azure"]
+    BILL["billing.py<br/>records → monthly run rate"]
     DET["detectors.py<br/>idle · orphan · healthy"]
-    POL["policy.json<br/>guardrails"]
+    POL["policy.json<br/>thresholds + guardrails"]
     ENG["engine.py<br/>assess → guardrail → rank → cap"]
     REP["report.py<br/>Markdown · JSON · console"]
     LOG[("audit trail<br/>JSONL")]
@@ -43,19 +47,21 @@ flowchart LR
     ENG --> REP
     ENG --> LOG
   end
-
-  ID["user-assigned<br/>managed identity"] -.-> CM
-  ID -.-> MON
-  ID -.-> RM
-  STORE[("Blob storage<br/>reports + trail")]
-  CI["GitHub Actions<br/>audit + --fail-on-waste gate"]
-
-  CM --> BILL
-  MON --> DET
-  RM --> BILL
-  RM --> DET
-  REP --> STORE
-  LOG --> STORE
-  ENG -. "apply (opt-in, dry-run by default)" .-> RES
-  CI --> REP
+ 
+  ENTRY --> AC
+  ENTRY --> ENG
+  CM --> AC
+  MON --> AC
+  RM --> AC
+  AC --> BILL
+  AC --> DET
+ 
+  ENG -. "plan" .-> APPLY["azure_client.apply_plan"]
+  ENTRY -. "apply --yes / WATCHDOG_APPLY" .-> APPLY
+  APPLY -. "opt-in; dry-run otherwise" .-> RES
+ 
+  OUT[("outputs<br/>CLI: reports/ + audit/<br/>Function: blob, via _publish")]
+  REP --> OUT
+  LOG -. "not published by the Function today" .-> OUT
+  ENTRY --> OUT
 
