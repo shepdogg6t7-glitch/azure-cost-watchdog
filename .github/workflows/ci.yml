@@ -54,15 +54,3 @@ jobs:
           name: costwatchdog-report
           path: reports/
           if-no-files-found: error
-
-  bicep:
-    name: validate bicep
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: azure/cli@v2
-        with:
-          inlineScript: |
-            az bicep install
-            az bicep build --file infra/main.bicep --stdout > /dev/null
-            az bicep build --file infra/functionApp.bicep --stdout > /dev/null

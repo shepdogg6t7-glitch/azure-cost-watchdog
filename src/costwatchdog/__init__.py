@@ -9,7 +9,6 @@ The package is split so that the decision logic is pure and testable:
 * :mod:`costwatchdog.policy` - the guardrail configuration.
 * :mod:`costwatchdog.engine` - combines the above into ranked, guardrailed decisions.
 * :mod:`costwatchdog.report` - renders Markdown/JSON reports.
-* :mod:`costwatchdog.azure_client` - the only module that talks to Azure.
 """
 
 from costwatchdog.engine import evaluate
