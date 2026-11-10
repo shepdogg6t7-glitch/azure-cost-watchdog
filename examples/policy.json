@@ -1,5 +1,5 @@
 {
-  "_comment": "Example policy for the fixture walkthrough. Keys omitted here fall back to the built-in defaults (see src/costwatchdog/policy.py). Start with allow_orphan_deletion=false and allow_prod_actions=false, review a few reports, then relax one gate at a time.",
+  "_comment": "Example policy for the fixture walkthrough. Keys omitted here fall back to the built-in defaults (see src/costwatchdog/policy.py). This example enables allow_orphan_deletion at evaluation time; actual deletion still requires explicit apply-time approval. Keep allow_prod_actions=false, review reports, and enable execution only after reviewing the proposed actions.",
   "currency": "USD",
   "min_monthly_savings": 1.0,
   "min_idle_days": 14,
