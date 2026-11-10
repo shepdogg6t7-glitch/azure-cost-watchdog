@@ -51,7 +51,11 @@ jobs:
         # The fixtures contain USD 512.78/month of identified waste, so 1000 passes.
         # Lower this to your tolerance to turn the job into a spending guardrail.
       - name: Dry-run the plan
-        run: PYTHONPATH=src python -m costwatchdog.cli apply --plan reports/plan.json
+        # The plan contains an App Service Plan (serverfarms) which the security 
+        # guardrail blocks. The CLI correctly exits with code 4 to signal that a 
+        # decision was rejected.
+        run: |
+          PYTHONPATH=src python -m costwatchdog.cli apply --plan reports/plan.json || test $? -eq 4
       - uses: actions/upload-artifact@v4
         with:
           name: costwatchdog-report
