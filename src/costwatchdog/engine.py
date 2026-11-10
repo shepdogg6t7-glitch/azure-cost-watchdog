@@ -25,7 +25,6 @@ from costwatchdog.models import (
     total_savings,
 )
 from costwatchdog.policy import Policy
-from costwatchdog.azure_client import AzureError
 
 #: Guardrail identifiers, surfaced in reports so operators can see why something stopped.
 GUARD_PROTECTED_TAG = "protected-tag"
@@ -197,7 +196,7 @@ def _unclassified(
         category="unclassified",
         reason=(
             "No usage telemetry or detector for this resource type; it is expensive but the "
-            "watchdog will not guess. Add monitoring or an owner tag to make it actionable."
+            "watchdog will not guess. Add monitoring or an owner tag for a more confident assessment."
         ),
         evidence=(
             "no metrics row was supplied for this resource id",
@@ -295,7 +294,7 @@ def _severity(action: Action, savings: Decimal, policy: Policy) -> Severity:
 
 
 def _rank_and_cap(decisions: list[Decision], policy: Policy) -> list[Decision]:
-    """Sort by impact, then refuse to auto-execute more than the configured rate limit."""
+    """Sort by impact and limit recommendations passing guardrails per audit."""
     ranked = sorted(decisions, key=lambda decision: decision.sort_key)
     executable = [decision for decision in ranked if decision.is_actionable]
     overflow = executable[policy.max_actions_per_run :]
@@ -328,45 +327,32 @@ def _rank_and_cap(decisions: list[Decision], policy: Policy) -> list[Decision]:
     return limited
 
 
-def suggest_command(decision: Decision) -> str:
-    """The exact az CLI command that carries out this decision."""
-    resource_id = decision.resource.id
-    kind = decision.resource.kind
+def suggest_recommendation(decision: Decision) -> str:
+    """Return an informational recommendation; never generate executable commands."""
+    recommendations = {
+        Action.DEALLOCATE: (
+            "Review whether this resource can be deallocated. "
+            "Validate ownership, dependencies, and business requirements first."
+        ),
+        Action.STOP: (
+            "Review whether this resource can be stopped or temporarily suspended. "
+            "Confirm service dependencies and operational requirements first."
+        ),
+        Action.DELETE_ORPHAN: (
+            "Investigate whether this resource is genuinely orphaned. "
+            "Verify ownership, dependencies, retention requirements, and backups "
+            "before any separately authorized action."
+        ),
+        Action.SCHEDULE_SHUTDOWN: (
+            "Evaluate whether a scheduled shutdown would reduce unnecessary usage. "
+            "Confirm operating hours and service requirements."
+        ),
+        Action.NOTIFY: (
+            "Review this finding manually. No automated action is recommended."
+        ),
+    }
 
-    if decision.action is Action.DEALLOCATE:
-        if kind.endswith("virtualmachinescalesets"):
-            return f"az vmss deallocate --ids {resource_id}"
-        return f"az vm deallocate --ids {resource_id}"
-
-    if decision.action is Action.STOP:
-        if kind == "microsoft.containerservice/managedclusters":
-            return f"az aks stop --ids {resource_id}"
-        if kind == "microsoft.web/serverfarms":
-            raise AzureError(
-                f"STOP is not supported for resource kind {kind!r}. "
-                "App Service plans have no stop lifecycle; "
-                "act on individual sites instead."
-            )
-        return f"az resource update --ids {resource_id} --set tags.costwatchdog=review"
-
-    if decision.action is Action.DELETE_ORPHAN:
-        allowed_delete_types = {
-            "microsoft.compute/disks",
-            "microsoft.compute/snapshots",
-            "microsoft.network/publicipaddresses",
-            "microsoft.network/networkinterfaces",
-        }
-        if kind not in allowed_delete_types:
-            raise AzureError(
-                f"DELETE_ORPHAN is not allowed for resource kind {kind!r}. "
-                f"Allowed: {sorted(allowed_delete_types)}"
-            )
-        return f"az resource delete --ids {resource_id}"
-
-    if decision.action is Action.SCHEDULE_SHUTDOWN:
-        return (
-            "az resource update --ids "
-            f"{resource_id} --set tags.costwatchdog:action=schedule-shutdown"
-        )
-
-    return "# review manually - no automated command for this decision"
+    return recommendations.get(
+        decision.action,
+        "Review this finding manually. No automated action is recommended.",
+    )

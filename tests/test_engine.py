@@ -15,7 +15,7 @@ from costwatchdog.engine import (
     GUARD_RATE_LIMIT,
     AuditResult,
     evaluate,
-    suggest_command,
+    suggest_recommendation,
 )
 from costwatchdog.models import Action
 from costwatchdog.policy import Policy
@@ -275,26 +275,67 @@ class RankingAndSummaryTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["total_monthly_cost"], 300.0)
 
 
-class SuggestedCommandTests(unittest.TestCase):
-    def test_commands_match_the_action(self) -> None:
+class SuggestedRecommendationTests(unittest.TestCase):
+    def test_recommendations_are_informational_not_executable(self) -> None:
         vm = resource("vm-idle")
-        disk = resource("disk-orphan-01", "microsoft.compute/disks", properties={"diskState": "Unattached"})
-        metrics_map = {vm.id.lower(): usage(vm.id, cpu_peak=0.5, days_since_last_activity=40)}
+        disk = resource(
+            "disk-orphan-01",
+            "microsoft.compute/disks",
+            properties={"diskState": "Unattached"},
+        )
+        metrics_map = {
+            vm.id.lower(): usage(
+                vm.id,
+                cpu_peak=0.5,
+                days_since_last_activity=40,
+            )
+        }
+
         result = audit(
             [vm, disk],
-            {vm.id.lower(): summary(vm.id, 140.26), disk.id.lower(): summary(disk.id, 19.72)},
+            {
+                vm.id.lower(): summary(vm.id, 140.26),
+                disk.id.lower(): summary(disk.id, 19.72),
+            },
             metrics_map,
             Policy(allow_orphan_deletion=True),
         )
-        commands = {decision.resource.name: suggest_command(decision) for decision in result.decisions}
-        self.assertTrue(commands["vm-idle"].startswith("az vm deallocate --ids /subscriptions/"))
-        self.assertTrue(commands["disk-orphan-01"].startswith("az resource delete --ids /subscriptions/"))
 
-    def test_aks_stop_command(self) -> None:
-        aks = resource("aks-1", "microsoft.containerservice/managedclusters")
-        metrics_map = {aks.id.lower(): usage(aks.id, cpu_peak=1.0, days_since_last_activity=30)}
-        result = audit([aks], {aks.id.lower(): summary(aks.id, 200.00)}, metrics_map)
-        self.assertTrue(suggest_command(result.decisions[0]).startswith("az aks stop --ids"))
+        recommendations = {
+            decision.resource.name: suggest_recommendation(decision)
+            for decision in result.decisions
+        }
+
+        self.assertIn("deallocated", recommendations["vm-idle"])
+        self.assertIn("orphaned", recommendations["disk-orphan-01"])
+
+        for recommendation in recommendations.values():
+            self.assertNotIn("az ", recommendation.lower())
+            self.assertNotIn("--ids", recommendation.lower())
+
+    def test_managed_cluster_gets_generic_recommendation(self) -> None:
+        aks = resource(
+            "aks-1",
+            "microsoft.containerservice/managedclusters",
+        )
+        metrics_map = {
+            aks.id.lower(): usage(
+                aks.id,
+                cpu_peak=1.0,
+                days_since_last_activity=30,
+            )
+        }
+
+        result = audit(
+            [aks],
+            {aks.id.lower(): summary(aks.id, 200.00)},
+            metrics_map,
+        )
+
+        recommendation = suggest_recommendation(result.decisions[0])
+
+        self.assertIn("Review", recommendation)
+        self.assertNotIn("az ", recommendation.lower())
 
 
 if __name__ == "__main__":

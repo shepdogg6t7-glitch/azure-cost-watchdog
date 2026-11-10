@@ -7,7 +7,7 @@ import json
 from decimal import Decimal
 from typing import Any, Iterable, Sequence
 
-from costwatchdog.engine import AuditResult, suggest_command
+from costwatchdog.engine import AuditResult, suggest_recommendation
 from costwatchdog.models import Action, Decision, money
 
 
@@ -19,7 +19,7 @@ def _scope_line(scope: str | None) -> str:
     return scope.strip() if scope else "not specified"
 
 
-def render_markdown(result: AuditResult, *, mode: str = "dry-run", scope: str | None = None) -> str:
+def render_markdown(result: AuditResult, *, mode: str = "offline-audit", scope: str | None = None) -> str:
     """Full report: summary table, then every decision grouped by required action."""
     lines: list[str] = []
     lines.append("# Cloud Cost Watchdog - audit report")
@@ -37,7 +37,7 @@ def render_markdown(result: AuditResult, *, mode: str = "dry-run", scope: str | 
     lines.append(f"| Unallocated spend (no resource id) | {_money(result.unallocated_monthly_cost, result.currency)} |")
     lines.append(f"| Identified monthly waste | {_money(result.identified_monthly_waste, result.currency)} |")
     lines.append(
-        f"| Actionable now | {_money(result.actionable_monthly_savings, result.currency)} "
+        f"| Recommendations passing guardrails | {_money(result.actionable_monthly_savings, result.currency)} "
         f"({len(result.actionable)} decision(s)) |"
     )
     lines.append(
@@ -54,8 +54,8 @@ def render_markdown(result: AuditResult, *, mode: str = "dry-run", scope: str | 
 
     sections: list[tuple[str, str, Sequence[Decision]]] = [
         (
-            "Actionable now",
-            "The watchdog would carry these out on the next scheduled run.",
+            "Recommendations passing guardrails",
+            "These recommendations meet configured policy guardrails. This tool does not execute them.",
             result.actionable,
         ),
         (
@@ -65,7 +65,7 @@ def render_markdown(result: AuditResult, *, mode: str = "dry-run", scope: str | 
         ),
         (
             "Notify only",
-            "Reported for review; no automated action is possible or allowed.",
+            "Informational findings for review; this tool takes no action.",
             result.notify_only,
         ),
     ]
@@ -111,11 +111,9 @@ def _decision_markdown(index: int, decision: Decision, currency: str) -> list[st
     if decision.approvals:
         lines.append("- **Needs approval because**: " + ", ".join(f"`{item}`" for item in decision.approvals))
     if decision.action is not Action.NOTIFY:
-        try:
-            cmd = suggest_command(decision)
-            lines.append(f"- **Suggested command**: `{cmd}`")
-        except Exception:
-            lines.append(f"- **Suggested command**: *None (Action not permitted by safety guardrails)*")
+        recommendation = suggest_recommendation(decision)
+        lines.append(f"- **Recommendation**: {recommendation}")
+        lines.append("- **Execution**: Not supported; manual review required.")
     lines.append("")
     return lines
 
@@ -134,27 +132,27 @@ def _methodology(result: AuditResult, mode: str) -> list[str]:
         f"activity for >= {policy.min_idle_days} days.",
         f"* Anything reclaiming less than {_money(policy.min_monthly_savings, result.currency)}"
         "/month is dropped as noise.",
-        f"* At most {policy.max_actions_per_run} actions are auto-executed per run; the rest "
-        "are deferred to the next run.",
-        f"* Production is {'actionable' if policy.allow_prod_actions else 'never auto-actioned'}, "
-        f"and orphan deletion is {'enabled' if policy.allow_orphan_deletion else 'disabled'} "
+        f"* At most {policy.max_actions_per_run} recommendations pass configured guardrails per audit; the rest "
+        "are held for manual review.",
+        f"* Production recommendations are {'permitted by policy' if policy.allow_prod_actions else 'held for review'}, "
+        f"and orphan recommendations are {'enabled' if policy.allow_orphan_deletion else 'disabled'} "
         "in this policy.",
         f"* Any resource tagged {', '.join('`' + key + '`' for key in policy.protected_tag_keys)} "
         "is reported but never touched.",
-        f"* Mode: **{mode}**. Dry-run reports make no changes to Azure.",
+        f"* Mode: **{mode}**. This tool analyzes local files and does not modify resources.",
         "",
     ]
     return lines
 
 
-def render_json(result: AuditResult, *, mode: str = "dry-run", scope: str | None = None) -> str:
+def render_json(result: AuditResult, *, mode: str = "offline-audit", scope: str | None = None) -> str:
     payload: dict[str, Any] = result.to_dict()
     payload["mode"] = mode
     payload["scope"] = scope or ""
     return json.dumps(payload, indent=2, sort_keys=False)
 
 
-def render_console(result: AuditResult, *, mode: str = "dry-run", scope: str | None = None) -> str:
+def render_console(result: AuditResult, *, mode: str = "offline-audit", scope: str | None = None) -> str:
     """Compact table for terminal use."""
     lines = [
         f"costwatchdog · {mode} · window {result.observed_days}d · currency {result.currency}"
@@ -163,7 +161,7 @@ def render_console(result: AuditResult, *, mode: str = "dry-run", scope: str | N
         f"  monthly run rate      {_money(result.total_monthly_cost, result.currency)}",
         f"  unallocated spend     {_money(result.unallocated_monthly_cost, result.currency)}",
         f"  identified waste      {_money(result.identified_monthly_waste, result.currency)}",
-        f"  actionable now        {_money(result.actionable_monthly_savings, result.currency)}",
+        f"  passing guardrails    {_money(result.actionable_monthly_savings, result.currency)}",
         f"  pending approval      {_money(result.pending_monthly_savings, result.currency)}",
         f"  resources considered  {result.resources_considered}"
         f" ({result.healthy} healthy, {result.dropped_below_threshold} below threshold)",
@@ -179,7 +177,7 @@ def render_console(result: AuditResult, *, mode: str = "dry-run", scope: str | N
                 f"{marker} {decision.resource.name}  ({decision.resource.resource_group or 'n/a'})"
             )
         lines.append("")
-        lines.append("  ! = executable now   ~ = needs approval / review")
+        lines.append("  ! = passes guardrails   ~ = needs approval / review")
     else:
         lines.append("  No waste found with the current policy.")
     return "\n".join(lines)
