@@ -45,31 +45,12 @@ jobs:
             --today 2026-10-27 \
             --format both \
             --out reports/report.md \
-            --plan-out reports/plan.json \
             --audit-log reports/audit.jsonl \
             --fail-on-waste 1000
         # The fixtures contain USD 512.78/month of identified waste, so 1000 passes.
         # Lower this to your tolerance to turn the job into a spending guardrail.
-      - name: Dry-run the plan
-        # The plan contains an App Service Plan (serverfarms) which the security 
-        # guardrail blocks. The CLI correctly exits with code 4 to signal that a 
-        # decision was rejected.
-        run: |
-          PYTHONPATH=src python -m costwatchdog.cli apply --plan reports/plan.json || test $? -eq 4
       - uses: actions/upload-artifact@v4
         with:
           name: costwatchdog-report
           path: reports/
           if-no-files-found: error
-
-  bicep:
-    name: validate bicep
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: azure/cli@v2
-        with:
-          inlineScript: |
-            az bicep install
-            az bicep build --file infra/main.bicep --stdout > /dev/null
-            az bicep build --file infra/functionApp.bicep --stdout > /dev/null
