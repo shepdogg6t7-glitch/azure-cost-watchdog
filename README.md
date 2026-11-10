@@ -15,6 +15,8 @@ resources considered 14 (4 healthy, 1 below threshold)
 
 Identified waste is every decision the detectors priced. Of that, USD 183.18 is executable now, USD 189.34 waits on an approval (`environment=prod`), and USD 140.26 is held back by guardrails and will not be touched: two idle VMs, one carrying the `costwatchdog:protected` tag and one in a denylisted scope.
 
+Action audit events: When audit logging is enabled, remediation outcomes are recorded as `action-executed`, `action-failed`, or `action-skipped`. Skipped events include notify-only decisions, unmet approval requirements, dry-run actions, unsupported actions, and actions deferred by the per-run action limit. Each action event records the resource, requested action, outcome, and execution detail.
+
 ---
 
 ## Architecture
