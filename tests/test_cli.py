@@ -131,11 +131,13 @@ class ApplyEndToEndTests(CliTestCase):
 
     def test_dry_run_executes_nothing(self) -> None:
         code, out, _ = self.run_cli(["apply", "--plan", str(self.plan), "--no-audit-log"])
-        self.assertEqual(code, cli.EXIT_OK)
+        # The serverfarms deletion is blocked by the security allowlist, causing exit code 4.
+        self.assertEqual(code, cli.EXIT_EXECUTION_FAILED)
         self.assertIn("dry-run", out)
         self.assertIn("dry-run: would execute", out)
         self.assertIn("executed 0", out)
         self.assertIn("requires approval: environment=prod", out)
+        self.assertIn("orphan deletion is not allowed", out)
 
     def test_notify_decisions_are_never_executed(self) -> None:
         _, out, _ = self.run_cli(["apply", "--plan", str(self.plan), "--no-audit-log"])

@@ -288,7 +288,7 @@ class SuggestedCommandTests(unittest.TestCase):
         )
         commands = {decision.resource.name: suggest_command(decision) for decision in result.decisions}
         self.assertTrue(commands["vm-idle"].startswith("az vm deallocate --ids /subscriptions/"))
-        self.assertTrue(commands["disk-orphan-01"].startswith("az disk delete --ids /subscriptions/"))
+        self.assertTrue(commands["disk-orphan-01"].startswith("az resource delete --ids /subscriptions/"))
 
     def test_aks_stop_command(self) -> None:
         aks = resource("aks-1", "microsoft.containerservice/managedclusters")

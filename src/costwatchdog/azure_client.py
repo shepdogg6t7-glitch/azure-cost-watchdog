@@ -39,7 +39,6 @@ _DELETE_ALLOWED_TYPES = frozenset(
         "microsoft.compute/snapshots",
         "microsoft.network/publicipaddresses",
         "microsoft.network/networkinterfaces",
-        "microsoft.web/serverfarms",
     }
 )
 

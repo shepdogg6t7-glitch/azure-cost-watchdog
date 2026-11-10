@@ -329,7 +329,8 @@ class ApplyPlanTests(unittest.TestCase):
             SNAPSHOT_ID,
             PUBLIC_IP_ID,
             NIC_ID,
-            SERVER_FARM_ID,
+            # SERVER_FARM_ID removed: serverfarms is not deletable
+            # via orphan cleanup (see tests/test_security_regression.py).
         ]
         plan = {
             "decisions": [

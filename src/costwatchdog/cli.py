@@ -216,14 +216,19 @@ def _run_apply(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int
 
     audit_log = AuditLog(None if args.no_audit_log else (args.audit_log or DEFAULT_AUDIT_LOG))
     dry_run = not args.yes
-    results = apply_plan(
-        plan,
-        dry_run=dry_run,
-        allow_prod=args.allow_prod,
-        allow_orphan_deletion=args.allow_orphan_deletion,
-        limit=args.limit,
-        audit_log=audit_log,
-    )
+    from costwatchdog.azure_client import AzureError
+    try:
+        results = apply_plan(
+            plan,
+            dry_run=dry_run,
+            allow_prod=args.allow_prod,
+            allow_orphan_deletion=args.allow_orphan_deletion,
+            limit=args.limit,
+            audit_log=audit_log,
+        )
+    except AzureError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return getattr(cli, 'EXIT_ERROR', 1)
     executed = [item for item in results if item["status"] == "executed"]
     skipped = [item for item in results if item["status"] == "skipped"]
     failed = [item for item in results if item["status"] == "failed"]

@@ -111,7 +111,11 @@ def _decision_markdown(index: int, decision: Decision, currency: str) -> list[st
     if decision.approvals:
         lines.append("- **Needs approval because**: " + ", ".join(f"`{item}`" for item in decision.approvals))
     if decision.action is not Action.NOTIFY:
-        lines.append(f"- **Suggested command**: `{suggest_command(decision)}`")
+        try:
+            cmd = suggest_command(decision)
+            lines.append(f"- **Suggested command**: `{cmd}`")
+        except Exception:
+            lines.append(f"- **Suggested command**: *None (Action not permitted by safety guardrails)*")
     lines.append("")
     return lines
 
