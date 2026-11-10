@@ -32,6 +32,17 @@ _API_VERSIONS: dict[str, str] = {
 }
 _DEFAULT_API_VERSION = "2021-04-01"
 
+# Deletion is intentionally narrower than the set of resources Azure can delete.
+_DELETE_ALLOWED_TYPES = frozenset(
+    {
+        "microsoft.compute/disks",
+        "microsoft.compute/snapshots",
+        "microsoft.network/publicipaddresses",
+        "microsoft.network/networkinterfaces",
+        "microsoft.web/serverfarms",
+    }
+)
+
 # Metrics differ per resource type. Container Insights exposes node_* metrics on the
 # cluster resource itself; verify names against your cluster before relying on them.
 _METRIC_PLANS: dict[str, tuple[str, ...]] = {
@@ -277,9 +288,10 @@ class AzureClients:
         raise AzureError(f"stop is not supported for {resource_id}")
 
     def delete_resource(self, resource_id: str) -> None:
-        """Delete an orphaned resource by id (disk, snapshot, public IP, NIC, empty plan)."""
+        """Delete an orphaned resource only when its type is explicitly allowed."""
+        resource_type = _validate_delete_resource_id(resource_id)
         subscription_id = _segment(resource_id, "subscriptions")
-        api_version = _API_VERSIONS.get(_type_of(resource_id), _DEFAULT_API_VERSION)
+        api_version = _API_VERSIONS[resource_type]
         client = self._client("resource", subscription_id)
         client.resources.begin_delete_by_id(resource_id, api_version=api_version).wait()
 
@@ -337,6 +349,16 @@ def apply_plan(
             _record(audit_log, "action-skipped", entry)
             results.append(entry)
             continue
+
+        if action == "delete-orphan":
+            try:
+                _validate_delete_resource_id(resource_id)
+            except AzureError as error:
+                entry["status"] = "failed"
+                entry["detail"] = str(error)
+                _record(audit_log, "action-failed", entry)
+                results.append(entry)
+                continue
 
         if dry_run:
             entry["status"] = "skipped"
@@ -478,6 +500,32 @@ def _segment(resource_id: str, marker: str) -> str:
         if position + 1 < len(parts):
             return parts[position + 1]
     return ""
+
+
+def _validate_delete_resource_id(resource_id: str) -> str:
+    """Return the allowed resource type or reject an unsafe deletion target."""
+    parts = str(resource_id).split("/")
+
+    if (
+        len(parts) != 9
+        or parts[0] != ""
+        or any(not part for part in parts[1:])
+        or parts[1].lower() != "subscriptions"
+        or parts[3].lower() != "resourcegroups"
+        or parts[5].lower() != "providers"
+    ):
+        raise AzureError(
+            f"invalid Azure resource ID for orphan deletion: {resource_id!r}"
+        )
+
+    resource_type = _type_of(resource_id)
+    if resource_type not in _DELETE_ALLOWED_TYPES:
+        raise AzureError(
+            f"orphan deletion is not allowed for resource type "
+            f"{resource_type or '<unknown>'!r}"
+        )
+
+    return resource_type
 
 
 def _type_of(resource_id: str) -> str:

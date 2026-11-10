@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from costwatchdog.auditlog import AuditLog
-from costwatchdog.azure_client import apply_plan
+from costwatchdog.azure_client import AzureClients, AzureError, apply_plan
 
 
 SUBSCRIPTION = "00000000-0000-0000-0000-000000000001"
@@ -30,6 +30,26 @@ AKS_ID = (
 DISK_ID = (
     f"/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-dev/"
     "providers/Microsoft.Compute/disks/disk-test"
+)
+
+SNAPSHOT_ID = (
+    f"/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-dev/"
+    "providers/Microsoft.Compute/snapshots/snapshot-test"
+)
+
+PUBLIC_IP_ID = (
+    f"/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-dev/"
+    "providers/Microsoft.Network/publicIPAddresses/pip-test"
+)
+
+NIC_ID = (
+    f"/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-dev/"
+    "providers/Microsoft.Network/networkInterfaces/nic-test"
+)
+
+SERVER_FARM_ID = (
+    f"/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-dev/"
+    "providers/Microsoft.Web/serverfarms/plan-test"
 )
 
 
@@ -301,6 +321,145 @@ class ApplyPlanTests(unittest.TestCase):
                 [event["event"] for event in events],
                 ["action-executed", "action-skipped"],
             )
+
+
+    def test_all_allowlisted_resource_types_dispatch_for_deletion(self):
+        allowed_ids = [
+            DISK_ID,
+            SNAPSHOT_ID,
+            PUBLIC_IP_ID,
+            NIC_ID,
+            SERVER_FARM_ID,
+        ]
+        plan = {
+            "decisions": [
+                decision(
+                    "delete-orphan",
+                    resource_id,
+                    ["orphan-deletion-disabled"],
+                )
+                for resource_id in allowed_ids
+            ]
+        }
+
+        with (
+            patch("costwatchdog.azure_client.require_azure_sdk"),
+            patch("costwatchdog.azure_client.AzureClients") as clients,
+        ):
+            results = apply_plan(
+                plan,
+                dry_run=False,
+                allow_orphan_deletion=True,
+            )
+
+        self.assertEqual(
+            [result["status"] for result in results],
+            ["executed"] * len(allowed_ids),
+        )
+        self.assertEqual(
+            clients.return_value.delete_resource.call_count,
+            len(allowed_ids),
+        )
+        self.assertEqual(
+            [
+                call.args[0]
+                for call in clients.return_value.delete_resource.call_args_list
+            ],
+            allowed_ids,
+        )
+
+    def test_unsupported_and_malformed_deletions_fail_before_azure_setup(self):
+        invalid_ids = [
+            VM_ID,
+            AKS_ID,
+            (
+                f"/subscriptions/{SUBSCRIPTION}/resourceGroups/rg-dev/"
+                "providers/Microsoft.Storage/storageAccounts/storage-test"
+            ),
+            "not-an-azure-resource-id",
+            (
+                "/resourceGroups/rg-dev/"
+                "providers/Microsoft.Compute/disks/disk-test"
+            ),
+        ]
+
+        for resource_id in invalid_ids:
+            with self.subTest(resource_id=resource_id):
+                with (
+                    patch("costwatchdog.azure_client.require_azure_sdk") as sdk,
+                    patch("costwatchdog.azure_client.AzureClients") as clients,
+                ):
+                    results = apply_plan(
+                        {
+                            "decisions": [
+                                decision(
+                                    "delete-orphan",
+                                    resource_id,
+                                    ["orphan-deletion-disabled"],
+                                )
+                            ]
+                        },
+                        dry_run=False,
+                        allow_orphan_deletion=True,
+                    )
+
+                self.assertEqual(results[0]["status"], "failed")
+                sdk.assert_not_called()
+                clients.assert_not_called()
+
+    def test_invalid_deletion_is_recorded_as_action_failed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = Path(directory) / "actions.jsonl"
+
+            with (
+                patch("costwatchdog.azure_client.require_azure_sdk") as sdk,
+                patch("costwatchdog.azure_client.AzureClients") as clients,
+            ):
+                results = apply_plan(
+                    {
+                        "decisions": [
+                            decision(
+                                "delete-orphan",
+                                VM_ID,
+                                ["orphan-deletion-disabled"],
+                            )
+                        ]
+                    },
+                    dry_run=False,
+                    allow_orphan_deletion=True,
+                    audit_log=AuditLog(log_path),
+                )
+
+            self.assertEqual(results[0]["status"], "failed")
+            events = read_events(log_path)
+            self.assertEqual(
+                [event["event"] for event in events],
+                ["action-failed"],
+            )
+            sdk.assert_not_called()
+            clients.assert_not_called()
+
+    def test_direct_delete_rejects_unsupported_type_before_client_creation(self):
+        client_wrapper = object.__new__(AzureClients)
+
+        with patch.object(client_wrapper, "_client") as client:
+            with self.assertRaises(AzureError):
+                client_wrapper.delete_resource(VM_ID)
+
+        client.assert_not_called()
+
+    def test_direct_delete_rejects_malformed_id_before_client_creation(self):
+        client_wrapper = object.__new__(AzureClients)
+        malformed_id = (
+            "/resourceGroups/rg-dev/"
+            "providers/Microsoft.Compute/disks/disk-test"
+        )
+
+        with patch.object(client_wrapper, "_client") as client:
+            with self.assertRaises(AzureError):
+                client_wrapper.delete_resource(malformed_id)
+
+        client.assert_not_called()
 
 
 if __name__ == "__main__":
