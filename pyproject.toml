@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Audits Azure cost exports and resource inventories offline, finds idle and orphaned resources, and prices the waste."
 readme = "README.md"
 requires-python = ">=3.10"
-# No license declared yet - pick one before publishing this repository.
+license = { text = "MIT" }
 dependencies = []  # standard library only
 
 [project.scripts]
