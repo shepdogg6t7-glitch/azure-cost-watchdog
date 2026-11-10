@@ -318,6 +318,7 @@ def apply_plan(
         }
         if action in {"none", "notify"}:
             entry["detail"] = "notify-only; nothing to execute"
+            _record(audit_log, "action-skipped", entry)
             results.append(entry)
             continue
 
@@ -328,16 +329,19 @@ def apply_plan(
         ]
         if blocking:
             entry["detail"] = "requires approval: " + ", ".join(blocking)
+            _record(audit_log, "action-skipped", entry)
             results.append(entry)
             continue
         if limit is not None and executed >= limit:
             entry["detail"] = f"limit of {limit} action(s) for this run reached"
+            _record(audit_log, "action-skipped", entry)
             results.append(entry)
             continue
 
         if dry_run:
             entry["status"] = "skipped"
             entry["detail"] = "dry-run: would execute"
+            _record(audit_log, "action-skipped", entry)
             results.append(entry)
             continue
 
@@ -353,6 +357,7 @@ def apply_plan(
                 clients.delete_resource(resource_id)
             else:
                 entry["detail"] = f"no executor for action {action!r}"
+                _record(audit_log, "action-skipped", entry)
                 results.append(entry)
                 continue
         except Exception as error:  # noqa: BLE001 - keep going through the plan
