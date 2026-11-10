@@ -2,72 +2,72 @@
 
 # azure-cost-watchdog
 
-**Find idle and orphaned Azure resources, price the waste per resource, and stop it — behind guardrails strict enough that auto-remediation is safe to actually switch on.**
+**Find idle and orphaned Azure resources from your cost exports and inventory, and price the waste per resource. Everything runs offline.**
 
-Most "cost saving" scripts are a cron job with a delete permission attached. This one is built the other way round: every action has to get past a named guardrail, every decision carries its own evidence, and the default mode changes nothing at all. You can read one decision in the report and see exactly which numbers and which rule produced it.
+Feed it a Cost Management CSV, a resource inventory, and usage metrics. It reads those files and writes a report. It has no Azure SDK, no credentials, and no network calls, so it cannot change anything in your subscription. Every recommendation carries its own evidence, so you can read one entry and see which numbers and which rule produced it.
 
-monthly run rate USD 886.80
-identified waste USD 512.78
-actionable now USD 183.18
-pending approval USD 189.34
-resources considered 14 (4 healthy, 1 below threshold)
+```text
+monthly run rate        USD 886.80
+identified waste        USD 512.78
+passing guardrails      USD 183.18
+pending approval        USD 189.34
+resources considered    14 (4 healthy, 1 below threshold)
+```
 
+Of the USD 512.78 identified, USD 183.18 passes every guardrail and USD 189.34 needs a human decision first (`environment=prod`). The remaining USD 140.26 is flagged but held back: two idle VMs, one with the `costwatchdog:protected` tag and one in a denylisted scope.
 
-Identified waste is every decision the detectors priced. Of that, USD 183.18 is executable now, USD 189.34 waits on an approval (`environment=prod`), and USD 140.26 is held back by guardrails and will not be touched: two idle VMs, one carrying the `costwatchdog:protected` tag and one in a denylisted scope.
+## Quick start
 
-CLI audit events: When audit logging is enabled, CLI audit and apply workflows write JSONL audit events. Remediation events include `action-executed`, `action-failed`, and `action-skipped`. Skipped events include notify-only decisions, unmet approval requirements, dry-run actions, unsupported actions, and actions deferred by the per-run action limit. Each action event records the resource, requested action, outcome, and execution detail. The Function App publishes reports to Blob Storage and, when remediation runs, a separate JSON action-outcome file; it does not persist the CLI-style JSONL audit-event trail.
+```bash
+pip install -e .
+costwatchdog audit \
+  --cost-csv examples/cost-export.csv \
+  --inventory examples/inventory.json \
+  --metrics examples/metrics.json \
+  --policy examples/policy.json \
+  --format both
+```
 
----
+- **Reports:** Markdown and JSON, written to `reports/` by default.
+- **Audit trail:** a JSONL record of each run in `audit/` (turn it off with `--no-audit-log`).
+- **CI gate:** `--fail-on-waste 1000` exits with code 3 when identified monthly waste goes over the amount.
+- **Dependencies:** Python 3.10+ and the standard library, nothing else.
 
-## Orphan deletion safeguards
+## What it will and won't tell you
 
-Orphan deletion requires two independent approvals. First, the evaluation policy must set `allow_orphan_deletion: true` to generate `delete-orphan` decisions. Second, actual execution requires apply mode (`--yes` for the CLI or `WATCHDOG_APPLY=true` for the Function App) and separate orphan-deletion approval (`--allow-orphan-deletion` for the CLI or `WATCHDOG_ALLOW_ORPHANS=true` for the Function App). The orphan-deletion approval flag cannot turn a notification-only decision into a deletion decision. Deletion is also restricted by the resource-type allowlist; App Service plans (`Microsoft.Web/serverfarms`) are not eligible for orphan deletion.
+- **Recommendations only.** The report says things like "review whether this VM can be deallocated". It never emits cloud commands, and there is no `apply` command.
+- **Guardrails decide the section.** Protected tags, denylisted resource groups, missing owner or environment tags, and `environment=prod` move a finding from "passing guardrails" to "pending approval" or "notify only".
+- **Orphan recommendations are opt-in.** `allow_orphan_deletion: true` in the policy file is what makes the report include `delete-orphan` recommendations. Treat them as a prompt to investigate. Check ownership, dependencies, retention, and backups before anyone acts.
+- **No telemetry, no guess.** An expensive resource with no metrics row is reported as unclassified, not assumed idle.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph AZ["Audited Azure subscription"]
-    RES["Resources<br/>VMs · VMSS · AKS · App Service plans<br/>disks · snapshots · public IPs · NICs"]
-    CM["Cost Management API<br/>daily actual cost, grouped by resource"]
-    MON["Azure Monitor<br/>metrics + activity log"]
-    RM["Resource Manager<br/>inventory + tags"]
-    RES -.-> RM
+  subgraph IN["Local input files"]
+    CSV["cost-export.csv<br/>Cost Management export"]
+    INV["inventory.json<br/>Resource Graph or ARM list"]
+    MET["metrics.json<br/>usage by resource id"]
+    POL["policy.json<br/>thresholds + guardrails"]
   end
- 
-  ENTRY["entrypoint<br/>CLI · 06:00 UTC timer · CI"]
-  ID["managed identity<br/>via DefaultAzureCredential"] -.-> AC
- 
-  subgraph WD["costwatchdog"]
+
+  subgraph WD["costwatchdog (standard library only)"]
     direction TB
-    AC["azure_client.py<br/>the only module that calls Azure"]
     BILL["billing.py<br/>records → monthly run rate"]
     DET["detectors.py<br/>idle · orphan · healthy"]
-    POL["policy.json<br/>thresholds + guardrails"]
     ENG["engine.py<br/>assess → guardrail → rank → cap"]
     REP["report.py<br/>Markdown · JSON · console"]
     LOG[("audit trail<br/>JSONL")]
     BILL --> ENG
     DET --> ENG
-    POL --> ENG
     ENG --> REP
     ENG --> LOG
   end
- 
-  ENTRY --> AC
-  ENTRY --> ENG
-  CM --> AC
-  MON --> AC
-  RM --> AC
-  AC --> BILL
-  AC --> DET
- 
-  ENG -. "plan" .-> APPLY["azure_client.apply_plan"]
-  ENTRY -. "apply --yes / WATCHDOG_APPLY" .-> APPLY
-  APPLY -. "opt-in; dry-run otherwise" .-> RES
- 
-  OUT[("outputs<br/>CLI: reports/ + audit/<br/>Function: blob, via _publish")]
-  REP --> OUT
-  LOG -. "not published by the Function today" .-> OUT
-  ENTRY --> OUT
 
+  CSV --> BILL
+  INV --> DET
+  MET --> DET
+  POL --> ENG
+  REP --> OUT[("reports/")]
+  LOG --> OUT2[("audit/")]
+```
