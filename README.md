@@ -71,3 +71,13 @@ flowchart LR
   REP --> OUT[("reports/")]
   LOG --> OUT2[("audit/")]
 ```
+
+## What I'd build next
+
+- **Idle databases.** An Azure SQL database sitting at 2% DTU for 30 days is the same kind of waste as an idle VM. It needs a new detector and a metrics shape for database usage, but the engine and guardrails would work unchanged.
+- **Right-sizing.** A VM peaking at 12% CPU isn't idle, so it never shows up today. A detector for "oversized" could recommend a smaller SKU, with the evidence listed the same way as for idle resources.
+- **Run-to-run comparison.** Diff this month's report against last month's: what got cleaned up, what's new, and what has been flagged three runs in a row. The audit trail already records each run, so the data is there.
+- **Tag hygiene report.** The guardrails already check for owner and environment tags. A dedicated section listing every resource missing them would help teams fix tagging before they fix spend.
+- **Housekeeping.** Some internal names still carry the old design, such as the `actionable` fields in the JSON output. Nothing executes anymore, so they should be renamed. That changes the JSON schema, so it would come with a version bump.
+
+Anything that talks to Azure live would be a separate, optional tool. This one stays offline on purpose.
